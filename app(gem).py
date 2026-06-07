@@ -16,8 +16,8 @@ nltk.download('punkt_tab')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
-# --- TEXT CLEANER DEFINITION ---
-# Kept here locally to ensure scikit-learn/joblib can unpickle the pipeline seamlessly
+# --- TEXT CLEANER & TRANFORMER GLOBAL DEFINITIONS ---
+# Kept here locally so scikit-learn/joblib can map and unpickle the pipeline seamlessly
 stop_words = set(stopwords.words("english"))
 lemma = WordNetLemmatizer()
 
@@ -33,16 +33,16 @@ class TextCleaner(BaseEstimator, TransformerMixin):
         return self
     def transform(self, X):
         return [clean_text(text) for text in X]
-    
+
+# FIXED: Must declare this named function here so joblib can unpack the pipeline!
 def scale_down_features(x):
     return x * 0.1
 
 
 # --- LOAD MODEL & ASSETS ---
-# NOTE: Make sure these filenames match exactly what you uploaded to your repository!
 @st.cache_resource
 def load_assets():
-    # Change "drug_condition_model.pkl" if your saved file has a different name
+    # Make sure your filenames uploaded to Github/Streamlit cloud match this exactly
     model = joblib.load("drug_condition_model.pkl") 
     drug_list = joblib.load("drug_list.pkl")
     return model, drug_list
@@ -105,7 +105,7 @@ if st.button("🔮 Predict Condition", type="primary"):
         # Create a Status Spinner while processing
         with st.spinner("Analyzing text tokens and computing prediction..."):
             
-            # 1. Structure input into a 2D DataFrame with matching column names for ColumnTransformer
+            # 1. Structure input into a 2D DataFrame matching the format expected by the ColumnTransformer
             input_df = pd.DataFrame({
                 'review': [review],
                 'drugName': [drug]
