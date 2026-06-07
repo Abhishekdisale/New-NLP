@@ -1,10 +1,12 @@
 import streamlit as st
 import sklearn.utils.validation
+import sklearn.ensemble
 
 # ==============================================================================
-# 🔥 CRITICAL CRASH FIX: MONKEY-PATCH FOR SKLEARN & IMBLEARN COMPATIBILITY 🔥
-# This fixes the "cannot import name '_is_pandas_df' from 'sklearn.utils.validation'" error
+# 🔥 CRITICAL CRASH FIXES: MONKEY-PATCHES FOR SKLEARN & IMBLEARN COMPATIBILITY 🔥
 # ==============================================================================
+
+# 1. Fixes the "cannot import name '_is_pandas_df'" error
 if not hasattr(sklearn.utils.validation, '_is_pandas_df'):
     def _is_pandas_df(X):
         try:
@@ -13,6 +15,15 @@ if not hasattr(sklearn.utils.validation, '_is_pandas_df'):
         except ImportError:
             return False
     sklearn.utils.validation._is_pandas_df = _is_pandas_df
+
+# 2. Fixes the "AdaBoostClassifier.__init__() got an unexpected keyword argument 'algorithm'" error
+original_adaboost_init = sklearn.ensemble.AdaBoostClassifier.__init__
+def patched_adaboost_init(self, *args, **kwargs):
+    if 'algorithm' in kwargs:
+        kwargs.pop('algorithm') # Strip out the deprecated parameter safely
+    original_adaboost_init(self, *args, **kwargs)
+sklearn.ensemble.AdaBoostClassifier.__init__ = patched_adaboost_init
+
 # ==============================================================================
 
 import joblib
@@ -33,7 +44,6 @@ nltk.download('stopwords')
 nltk.download('wordnet')
 
 # --- TEXT CLEANER & TRANSFORMER GLOBAL DEFINITIONS ---
-# Kept here locally so scikit-learn/joblib can map and unpickle the pipeline seamlessly
 stop_words = set(stopwords.words("english"))
 lemma = WordNetLemmatizer()
 
@@ -50,7 +60,7 @@ class TextCleaner(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return [clean_text(text) for text in X]
 
-# Declared here so joblib can unpack the pipeline's downweight function!
+# Declared here so joblib can unpack the pipeline's downweight function
 def scale_down_features(x):
     return x * 0.1
 
@@ -58,9 +68,9 @@ def scale_down_features(x):
 # --- LOAD MODEL & ASSETS ---
 @st.cache_resource
 def load_assets():
-    # Make sure your filenames uploaded to Github match this exactly
-    model = joblib.load("drug_condition_model(gem).pkl") 
-    drug_list = joblib.load("drug_list(gem).pkl")
+    # Ensure these names precisely match your uploaded .pkl filenames
+    model = joblib.load("drug_condition_model.pkl") 
+    drug_list = joblib.load("drug_list.pkl")
     return model, drug_list
 
 try:
@@ -110,7 +120,6 @@ if st.button("🔮 Predict Condition", type="primary"):
         st.warning("⚠️ Review is too short. Please provide at least 3 words for an accurate assessment.")
 
     else:
-        # If manual drug input, perform a similarity check to help the user
         if input_method == "Enter manually":
             if drug.lower() not in drug_list_lower:
                 matches = difflib.get_close_matches(drug, drug_list, n=1, cutoff=0.6)
@@ -118,24 +127,20 @@ if st.button("🔮 Predict Condition", type="primary"):
                 if matches:
                     st.info(f"Did you mean: **{matches[0]}**?")
         
-        # Create a Status Spinner while processing
         with st.spinner("Analyzing text tokens and computing prediction..."):
             
-            # 1. Structure input into a 2D DataFrame matching the format expected by the ColumnTransformer
+            # Structure input into a 2D DataFrame for ColumnTransformer compatibility
             input_df = pd.DataFrame({
                 'review': [review],
                 'drugName': [drug]
             })
             
-            # 2. Run the pipeline prediction safely
             try:
                 prediction = model.predict(input_df)[0]
                 
-                # 3. Display Result
                 st.balloons()
                 st.success(f"🎯 **Predicted Condition:** {prediction}")
                 
-                # Contextual alert styling based on result
                 if "Depression" in prediction:
                     st.info("Mental Health Related Assessment")
                 elif "Diabetes" in prediction:
@@ -145,4 +150,3 @@ if st.button("🔮 Predict Condition", type="primary"):
                     
             except Exception as prediction_error:
                 st.error(f"An unexpected error occurred during pipeline prediction: {prediction_error}")
-                st.info("Tip: Ensure your requirements.txt matches Alternative 1 settings.")
