@@ -4,4 +4,3 @@ pandas
 numpy
 nltk
 joblib
-imbalanced-learn
