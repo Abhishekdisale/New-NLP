@@ -33,6 +33,9 @@ class TextCleaner(BaseEstimator, TransformerMixin):
         return self
     def transform(self, X):
         return [clean_text(text) for text in X]
+    
+def scale_down_features(x):
+    return x * 0.1
 
 
 # --- LOAD MODEL & ASSETS ---
