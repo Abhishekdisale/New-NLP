@@ -43,8 +43,8 @@ def scale_down_features(x):
 @st.cache_resource
 def load_assets():
     # Make sure your filenames uploaded to Github/Streamlit cloud match this exactly
-    model = joblib.load("drug_condition_model.pkl") 
-    drug_list = joblib.load("drug_list.pkl")
+    model = joblib.load("drug_condition_model(gem).pkl") 
+    drug_list = joblib.load("drug_list(gem).pkl")
     return model, drug_list
 
 try:
