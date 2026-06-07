@@ -1,4 +1,20 @@
 import streamlit as st
+import sklearn.utils.validation
+
+# ==============================================================================
+# 🔥 CRITICAL CRASH FIX: MONKEY-PATCH FOR SKLEARN & IMBLEARN COMPATIBILITY 🔥
+# This fixes the "cannot import name '_is_pandas_df' from 'sklearn.utils.validation'" error
+# ==============================================================================
+if not hasattr(sklearn.utils.validation, '_is_pandas_df'):
+    def _is_pandas_df(X):
+        try:
+            import pandas as pd
+            return isinstance(X, pd.DataFrame)
+        except ImportError:
+            return False
+    sklearn.utils.validation._is_pandas_df = _is_pandas_df
+# ==============================================================================
+
 import joblib
 import nltk
 import difflib
@@ -16,7 +32,7 @@ nltk.download('punkt_tab')
 nltk.download('stopwords')
 nltk.download('wordnet')
 
-# --- TEXT CLEANER & TRANFORMER GLOBAL DEFINITIONS ---
+# --- TEXT CLEANER & TRANSFORMER GLOBAL DEFINITIONS ---
 # Kept here locally so scikit-learn/joblib can map and unpickle the pipeline seamlessly
 stop_words = set(stopwords.words("english"))
 lemma = WordNetLemmatizer()
@@ -34,7 +50,7 @@ class TextCleaner(BaseEstimator, TransformerMixin):
     def transform(self, X):
         return [clean_text(text) for text in X]
 
-# FIXED: Must declare this named function here so joblib can unpack the pipeline!
+# Declared here so joblib can unpack the pipeline's downweight function!
 def scale_down_features(x):
     return x * 0.1
 
@@ -42,9 +58,9 @@ def scale_down_features(x):
 # --- LOAD MODEL & ASSETS ---
 @st.cache_resource
 def load_assets():
-    # Make sure your filenames uploaded to Github/Streamlit cloud match this exactly
-    model = joblib.load("drug_condition_model(gem).pkl") 
-    drug_list = joblib.load("drug_list(gem).pkl")
+    # Make sure your filenames uploaded to Github match this exactly
+    model = joblib.load("drug_condition_model.pkl") 
+    drug_list = joblib.load("drug_list.pkl")
     return model, drug_list
 
 try:
@@ -129,4 +145,4 @@ if st.button("🔮 Predict Condition", type="primary"):
                     
             except Exception as prediction_error:
                 st.error(f"An unexpected error occurred during pipeline prediction: {prediction_error}")
-                st.info("Tip: Ensure 'imbalanced-learn' is added to requirements.txt and your saved model pipeline matches this input format.")
+                st.info("Tip: Ensure your requirements.txt matches Alternative 1 settings.")
