@@ -76,8 +76,8 @@ def scale_down_features(x):
 @st.cache_resource
 def load_assets():
     # Ensure these names precisely match your uploaded .pkl filenames
-    model = joblib.load("drug_condition_model.pkl") 
-    drug_list = joblib.load("drug_list.pkl")
+    model = joblib.load("drug_condition_model(gem).pkl") 
+    drug_list = joblib.load("drug_list(gem).pkl")
     return model, drug_list
 
 try:
