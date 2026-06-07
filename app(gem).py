@@ -1,6 +1,7 @@
 import streamlit as st
 import sklearn.utils.validation
 import sklearn.ensemble
+import sklearn.compose._column_transformer
 
 # ==============================================================================
 # 🔥 CRITICAL CRASH FIXES: MONKEY-PATCHES FOR SKLEARN & IMBLEARN COMPATIBILITY 🔥
@@ -23,6 +24,12 @@ def patched_adaboost_init(self, *args, **kwargs):
         kwargs.pop('algorithm') # Strip out the deprecated parameter safely
     original_adaboost_init(self, *args, **kwargs)
 sklearn.ensemble.AdaBoostClassifier.__init__ = patched_adaboost_init
+
+# 3. Fixes the "module 'sklearn.compose._column_transformer' has no attribute '_RemainderColsList'" error
+if not hasattr(sklearn.compose._column_transformer, "_RemainderColsList"):
+    class _RemainderColsList(list):
+        pass
+    sklearn.compose._column_transformer._RemainderColsList = _RemainderColsList
 
 # ==============================================================================
 
@@ -69,8 +76,8 @@ def scale_down_features(x):
 @st.cache_resource
 def load_assets():
     # Ensure these names precisely match your uploaded .pkl filenames
-    model = joblib.load("drug_condition_model(gem).pkl") 
-    drug_list = joblib.load("drug_list(gem).pkl")
+    model = joblib.load("drug_condition_model.pkl") 
+    drug_list = joblib.load("drug_list.pkl")
     return model, drug_list
 
 try:
